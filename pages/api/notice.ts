@@ -4,7 +4,14 @@ import { connectDB } from "../../utils/db";
 const GET: NextApiHandler = (req, res) => {
   const db = connectDB();
 
-  const [notice] = db.select().from("notice").orderBy("id", "desc");
+  const notice = db
+    .select(
+      "*",
+      "content AS raw_content",
+      db.raw("SUBSTRING(content,1,50) AS content")
+    )
+    .from("notice")
+    .orderBy("id", "desc");
 
   return res.send({ task: !!notice, notice });
 };
