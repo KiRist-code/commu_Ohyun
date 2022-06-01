@@ -4,11 +4,12 @@ import { serviceReturnForm } from "../modules/service_modules";
 import bcrypt from "bcrypt";
 
 dotenv.config();
-const JWT_EXPIRY_TIME = 24 * 3600 * 1000;
+
+//setting sercret key
 const SECRET_KEY: string = process.env.JWT_SECRET_KEY!;
 const REFRESH_KEY: string = process.env.JWT_REFRESH_SECRET_KEY!;
 
-export function signShortJWT(email: string, cacheToken: string): string {
+export function signJWT(email: string, cacheToken: string): string {
   const token: string = jwt.sign(email, SECRET_KEY, {
     expiresIn: "20h",
   });
@@ -16,7 +17,7 @@ export function signShortJWT(email: string, cacheToken: string): string {
   return token;
 }
 
-export function signLongJWT(email: string): string {
+export function signCachedJWT(email: string): string {
   const token = jwt.sign(email, REFRESH_KEY, {
     expiresIn: "30d",
   });
