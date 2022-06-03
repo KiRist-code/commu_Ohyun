@@ -9,7 +9,7 @@ const POST: NextApiHandler = async (req, res) => {
     message: "server error",
     responseData: {},
   };
-  const { email, password, age, birth, phone } = req.body;
+  const { email, password, age, birth, phone, isTeacher } = req.body;
 
   const db = connectDB();
   const [checkHasEmail] = await db
@@ -31,9 +31,11 @@ const POST: NextApiHandler = async (req, res) => {
       age: age,
       birth: birth,
       phone: phone,
+      token: refreshToken,
+      isTeacher: isTeacher,
     })
       .into("user")
-      .then(async (rows) => {
+      .then(() => {
         returnForm.message = "SignUp Successful!";
         returnForm.responseData = { email: email, token: acessToken };
         res.setHeader("Cookie", refreshToken);

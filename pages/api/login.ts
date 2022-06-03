@@ -30,6 +30,8 @@ const POST: NextApiHandler = async (req, res) => {
         const acessToken: string = signCachedJWT(email);
         const refreshToken: string = signJWT(email, acessToken);
 
+        const updateToken = db.update();
+
         //Write returnForm
         returnForm.message = "Login Successful!";
         returnForm.responseData = { token: acessToken };
