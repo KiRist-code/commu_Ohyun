@@ -1,13 +1,14 @@
 import { NextApiHandler } from "next";
 import { serviceReturnForm } from "../../modules/service_modules";
 import { connectDB } from "../../utils/db";
+import { verifyToken } from "../../utils/token";
 
 const GET: NextApiHandler = (req, res) => {
   const returnForm: serviceReturnForm = {
-    message: "server error",
+    message: "Server Error",
     responseData: {},
   };
-  const token = req.cookies["refreshToken"];
+  const token = localStorage.getItem("authorization");
 
   const db = connectDB();
   db.select(
@@ -20,10 +21,10 @@ const GET: NextApiHandler = (req, res) => {
     .then((rows) => {
       returnForm.message = "Task Successful";
       returnForm.responseData = {
+        id: rows.id,
         titles: rows.title,
-        token: req.body.acessToken,
+        token: token,
       };
-      res.setHeader("cookies", token!);
       res.status(200).send(returnForm);
     })
     .catch((e) => {
@@ -35,25 +36,32 @@ const GET: NextApiHandler = (req, res) => {
 
 const POST: NextApiHandler = (req, res) => {
   const returnForm: serviceReturnForm = {
-    message: "server error",
+    message: "Server Error",
     responseData: {},
   };
 
   const db = connectDB();
-  const refreshToken = req.cookies["refreshToken"];
-  const { title, content, tag, token } = req.body;
+  const token: string = localStorage.getItem("authorization")!;
+  const { title, content, tag, uid } = req.body;
 
   if (!title || !content) return res.status(500).send(returnForm);
-  if (!refreshToken) {
-    returnForm.message = "Not included refreshToken";
+  if (!token) {
+    returnForm.message = "Not included Token";
     return res.status(401).send(returnForm);
   }
 
-  const rows = db.select(refreshToken!).from("user");
+  //Check user is Teacher
+  const rows = db.select(uid!).from("user");
+  if (!verifyToken(rows.email, rows.password, token)) {
+    returnForm.message = "Verify Failed. Only Member Can Access";
+    res.status(403).send(returnForm);
+  }
+
   if (rows.isTeacher == "0") {
     returnForm.message = "Not Permission to write Notice";
     res.status(401).send(returnForm);
   }
+
   db.insert({
     title: title,
     content: content,
@@ -69,4 +77,70 @@ const POST: NextApiHandler = (req, res) => {
       console.log(e);
       res.status(500).send(returnForm);
     });
+};
+
+const PUT: NextApiHandler = (req, res) => {
+  const returnForm: serviceReturnForm = {
+    message: "Server Error",
+    responseData: {},
+  };
+  const db = connectDB();
+  const token: string = localStorage.getItem("authorization")!;
+  const { id, title, content, tag, uid } = req.body;
+
+  if (!title || !content) return res.status(500).send(returnForm);
+  if (!token) {
+    returnForm.message = "Not included Token";
+    return res.status(401).send(returnForm);
+  }
+
+  //Check user is Teacher
+  const rows = db.select(uid!).from("user");
+  if (!verifyToken(rows.email, rows.password, token)) {
+    returnForm.message = "Verify Failed. Only Member Can Access";
+    res.status(403).send(returnForm);
+  }
+
+  if (rows.isTeacher == "0") {
+    returnForm.message = "Not Permission to write Notice";
+    res.status(401).send(returnForm);
+  }
+
+  db.update({
+    title: title,
+    content: content,
+    tag: tag,
+  })
+    .where({ id })
+    .then(() => {
+      returnForm.message = "Task Successful!";
+      returnForm.responseData = { task: "success", token: token };
+      res.status(200).send(returnForm);
+    })
+    .catch((e) => {
+      console.log(e);
+      res.status(500).send(returnForm);
+    });
+};
+
+const DELETE: NextApiHandler = (req, res) => {
+  const returnForm: serviceReturnForm = {
+    message: "Server Error",
+    responseData: {},
+  };
+  const db = connectDB();
+  const token: string = localStorage.getItem("authorization")!;
+  const { id, title, content, tag, uid } = req.body;
+
+  db.where({ id: id })
+    .del()
+    .then(() => {
+      returnForm.message = "Task Successful!";
+      returnForm.responseData = { task: "success", token: token };
+      res.status(200).send(returnForm);
+    });
+    .catch((e) => {
+      console.log(e);
+      res.status(500).send(returnForm);
+    }); 
 };

@@ -1,15 +1,15 @@
 import { NextApiHandler } from "next";
 import { connectDB } from "../../utils/db";
 import bcrypt from "bcrypt";
-import { signJWT, signCachedJWT } from "../../utils/token";
+import { makeToken } from "../../utils/token";
 import { serviceReturnForm } from "../../modules/service_modules";
 
 const POST: NextApiHandler = async (req, res) => {
   const returnForm: serviceReturnForm = {
-    message: "server error",
+    message: "Server Error",
     responseData: {},
   };
-  const { email, password, age, birth, phone, isTeacher } = req.body;
+  const { email, password, age, birth, phone } = req.body;
 
   const db = connectDB();
   const [checkHasEmail] = await db
@@ -20,9 +20,7 @@ const POST: NextApiHandler = async (req, res) => {
   //check already having email
   if (!checkHasEmail) {
     let encryptedPassword = await bcrypt.hash(password, 10);
-
-    const refreshToken = signCachedJWT(email);
-    const acessToken = signJWT(email, refreshToken);
+    const token: string = makeToken(email, password);
 
     //insert to DB
     db.insert({
@@ -31,14 +29,14 @@ const POST: NextApiHandler = async (req, res) => {
       age: age,
       birth: birth,
       phone: phone,
-      token: refreshToken,
+      token: token,
       isTeacher: isTeacher,
     })
       .into("user")
       .then(() => {
         returnForm.message = "SignUp Successful!";
-        returnForm.responseData = { email: email, token: acessToken };
-        res.setHeader("Cookie", refreshToken);
+        returnForm.responseData = { email: email, token: token };
+        localStorage.setItem("authorization", token);
         res.status(201).send(returnForm);
       })
       .catch((e) => {

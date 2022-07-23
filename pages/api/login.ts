@@ -1,20 +1,15 @@
 import { NextApiHandler } from "next";
 import { connectDB } from "../../utils/db";
 import bcrypt from "bcrypt";
-import {
-  signCachedJWT,
-  signJWT,
-  verifyCachedJWT,
-  verifyJWT,
-} from "../../utils/token";
 import { serviceReturnForm } from "../../modules/service_modules";
 
 const POST: NextApiHandler = async (req, res) => {
   const returnForm: serviceReturnForm = {
-    message: "server error",
+    message: "Server Error",
     responseData: {},
   };
   const { email, password } = req.body;
+  const token: string = localStorage.getItem("authorization")!;
 
   //connect to DB
   const db = connectDB();
@@ -26,16 +21,9 @@ const POST: NextApiHandler = async (req, res) => {
     .then(async (rows) => {
       const isPasswordCorrect = await bcrypt.compare(password, rows.password);
       if (isPasswordCorrect) {
-        //Set JWT
-        const acessToken: string = signCachedJWT(email);
-        const refreshToken: string = signJWT(email, acessToken);
-
-        const updateToken = db.update();
-
-        //Write returnForm
+        //verify Token
         returnForm.message = "Login Successful!";
-        returnForm.responseData = { token: acessToken };
-        res.setHeader("Cookie", refreshToken);
+        returnForm.responseData = { authorization: token, uid: rows.uid };
         res.status(200).send(returnForm);
       } else {
         returnForm.message = "Wrong Password";
